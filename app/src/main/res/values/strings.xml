@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">TempusTrace</string>
+    <string name="title_tracking">Tracking</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
+    <string name="dashboard">Dashboard</string>
+    <string name="tracking">Tracking</string>
+    <string name="account">Account</string>
+</resources>
