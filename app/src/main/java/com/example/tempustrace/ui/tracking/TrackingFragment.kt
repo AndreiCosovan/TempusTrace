@@ -14,6 +14,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.example.tempustrace.databinding.FragmentTrackingBinding
 import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.button.MaterialButton
 import java.util.*
 
 class TrackingFragment : Fragment() {
@@ -39,6 +40,7 @@ class TrackingFragment : Fragment() {
         val editTextDate: EditText = binding.editTextDate
         val editTextFirstBreak: EditText = binding.editTextFirstBreak
         val editTextSecondBreak: EditText = binding.editTextSecondBreak
+        val saveButton: MaterialButton = binding.saveButton
 
         trackingViewModel.text.observe(viewLifecycleOwner) {
             textView.text = it
@@ -63,6 +65,10 @@ class TrackingFragment : Fragment() {
         // Set today's date as default value for the date field
         val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         editTextDate.setText(todayDate)
+
+        saveButton.setOnClickListener {
+            // Handle save action here
+        }
 
         return root
     }
