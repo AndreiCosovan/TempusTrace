@@ -6,4 +6,6 @@
     <string name="dashboard">Dashboard</string>
     <string name="tracking">Tracking</string>
     <string name="account">Account</string>
+    <string name="first_break_in_minutes">First break (in minutes)</string>
+    <string name="second_break_in_minutes">Second break (in minutes)</string>
 </resources>
