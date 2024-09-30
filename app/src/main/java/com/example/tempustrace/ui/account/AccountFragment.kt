@@ -23,7 +23,7 @@ class AccountFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         val accountViewModel =
-            ViewModelProvider(this).get(AccountViewModel::class.java)
+            ViewModelProvider(this)[AccountViewModel::class.java]
 
         _binding = FragmentAccountBinding.inflate(inflater, container, false)
         val root: View = binding.root
