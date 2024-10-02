@@ -42,10 +42,6 @@ class TrackingFragment : Fragment() {
         val editTextSecondBreak: EditText = binding.editTextSecondBreak
         val saveButton: MaterialButton = binding.saveButton
 
-        trackingViewModel.text.observe(viewLifecycleOwner) {
-            textView.text = it
-        }
-
         editTextDate.setOnClickListener {
             showDatePickerDialog(editTextDate)
         }
