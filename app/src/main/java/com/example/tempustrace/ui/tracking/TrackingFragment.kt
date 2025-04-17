@@ -22,6 +22,7 @@ import com.example.tempustrace.data.WorkDay
 import com.example.tempustrace.databinding.FragmentTrackingBinding
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.*
 import javax.inject.Inject
@@ -55,48 +56,44 @@ class TrackingFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentTrackingBinding.inflate(inflater, container, false)
-        val root: View = binding.root
+        return binding.root
+    }
 
-        val textView: TextView = binding.textTracking
-        val editTextDate: EditText = binding.editTextDate
-        val editTextFirstBreak: EditText = binding.editTextFirstBreak
-        val editTextSecondBreak: EditText = binding.editTextSecondBreak
-        val editTextWorkedFrom: EditText = binding.editTextWorkedFrom
-        val editTextWorkedTo: EditText = binding.editTextWorkedTo
-        val saveButton: MaterialButton = binding.saveButton
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        
+        setupInputFields()
+        setupDefaultValues()
+    }
 
-        editTextDate.setOnClickListener {
-            showDatePickerDialog(editTextDate)
+    private fun setupInputFields() {
+        // Setup date picker
+        binding.editTextDate.setOnClickListener {
+            showDatePickerDialog(binding.editTextDate)
         }
 
-        editTextFirstBreak.setOnClickListener {
-            showNumberPickerDialog(editTextFirstBreak, 18)
+        // Setup time pickers
+        binding.editTextWorkedFrom.setOnClickListener {
+            showTimePickerDialog(binding.editTextWorkedFrom)
         }
 
-        editTextSecondBreak.setOnClickListener {
-            showNumberPickerDialog(editTextSecondBreak, 36)
+        binding.editTextWorkedTo.setOnClickListener {
+            showTimePickerDialog(binding.editTextWorkedTo)
         }
 
-        editTextWorkedFrom.setOnClickListener {
-            showTimePickerDialog(editTextWorkedFrom)
+        // Setup break duration pickers
+        binding.editTextFirstBreak.setOnClickListener {
+            showNumberPickerDialog(binding.editTextFirstBreak, 18)
         }
 
-        editTextWorkedTo.setOnClickListener {
-            showTimePickerDialog(editTextWorkedTo)
+        binding.editTextSecondBreak.setOnClickListener {
+            showNumberPickerDialog(binding.editTextSecondBreak, 36)
         }
 
-        // Set today's date as default value for the date field
-        val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        editTextDate.setText(todayDate)
-
-        saveButton.setOnClickListener {
+        // Setup save button
+        binding.saveButton.setOnClickListener {
             saveDate()
         }
-
-        // Set default values
-        setupDefaultValues()
-
-        return root
     }
 
     private fun setupDefaultValues() {
@@ -124,11 +121,11 @@ class TrackingFragment : Fragment() {
         val numberPicker = NumberPicker(requireContext()).apply {
             minValue = 0
             maxValue = 60
-            value = defaultValue
+            value = editText.text.toString().toIntOrNull() ?: defaultValue
         }
 
         AlertDialog.Builder(requireContext())
-            .setTitle("Select value")
+            .setTitle("Select Break Duration (minutes)")
             .setView(numberPicker)
             .setPositiveButton("OK") { _, _ ->
                 editText.setText(numberPicker.value.toString())
@@ -153,9 +150,19 @@ class TrackingFragment : Fragment() {
     }
 
     private fun showTimePickerDialog(editText: EditText) {
-        val calendar = Calendar.getInstance()
-        val hour = calendar.get(Calendar.HOUR_OF_DAY)
-        val minute = calendar.get(Calendar.MINUTE)
+        // Parse current value if exists, otherwise default to current time
+        val hour: Int
+        val minute: Int
+
+        if (editText.text.toString().matches(Regex("\\d{2}:\\d{2}"))) {
+            val parts = editText.text.toString().split(":")
+            hour = parts[0].toInt()
+            minute = parts[1].toInt()
+        } else {
+            val calendar = Calendar.getInstance()
+            hour = calendar.get(Calendar.HOUR_OF_DAY)
+            minute = calendar.get(Calendar.MINUTE)
+        }
 
         val timePickerDialog = TimePickerDialog(
             requireContext(),
@@ -179,68 +186,68 @@ class TrackingFragment : Fragment() {
 
         // Validate required fields
         if (date.isEmpty() || workedFrom.isEmpty() || workedTo.isEmpty()) {
-            showErrorDialog("Please fill in all required fields.")
+            showErrorSnackbar("Please fill in all required fields.")
             return
         }
 
-        // Parse times
-        val startTime = LocalTime.parse(workedFrom)
-        val endTime = LocalTime.parse(workedTo)
+        try {
+            // Parse times
+            val startTime = LocalTime.parse(workedFrom)
+            val endTime = LocalTime.parse(workedTo)
 
-        // Create a WorkDay entity
-        val workDay = WorkDay(
-            date = LocalDate.parse(date),
-            startTime = startTime,
-            endTime = endTime
-        )
-
-        // Use a coroutine to perform database operation
-        CoroutineScope(Dispatchers.IO).launch {
-            // Insert the WorkDay and get its ID
-            val workDayId = db.workDayDao().insertWorkDay(workDay)
-
-            // Create Break entities
-            val breaks = listOf(
-                Break(
-                    workDayId = workDayId,
-                    startTime = startTime.plusMinutes(120), // Example: First break starts 2 hours after work starts
-                    durationMinutes = firstBreak
-                ),
-                Break(
-                    workDayId = workDayId,
-                    startTime = startTime.plusMinutes(240), // Example: Second break starts 4 hours after work starts
-                    durationMinutes = secondBreak
-                )
+            // Create a WorkDay entity
+            val workDay = WorkDay(
+                date = LocalDate.parse(date),
+                startTime = startTime,
+                endTime = endTime
             )
 
-            // Insert breaks
-            breaks.forEach { db.breakDao().insertBreak(it) }
+            // Use a coroutine to perform database operation
+            CoroutineScope(Dispatchers.IO).launch {
+                // Insert the WorkDay and get its ID
+                val workDayId = db.workDayDao().insertWorkDay(workDay)
 
-            // Switch back to main thread for UI updates
-            CoroutineScope(Dispatchers.Main).launch {
-                // Reset data
-                setupDefaultValues()
+                // Create Break entities
+                val breaks = listOf(
+                    Break(
+                        workDayId = workDayId,
+                        startTime = startTime.plusMinutes(120), // Example: First break starts 2 hours after work starts
+                        durationMinutes = firstBreak
+                    ),
+                    Break(
+                        workDayId = workDayId,
+                        startTime = startTime.plusMinutes(240), // Example: Second break starts 4 hours after work starts
+                        durationMinutes = secondBreak
+                    )
+                )
 
-                // Show success dialog
-                showSuccessDialog()
+                // Insert breaks
+                breaks.forEach { db.breakDao().insertBreak(it) }
+
+                // Switch back to main thread for UI updates
+                CoroutineScope(Dispatchers.Main).launch {
+                    // Reset data
+                    setupDefaultValues()
+
+                    // Show success message
+                    showSuccessSnackbar("Work time saved successfully!")
+                }
             }
+        } catch (e: Exception) {
+            showErrorSnackbar("Error saving data: ${e.localizedMessage}")
         }
     }
 
-    private fun showErrorDialog(message: String) {
-        val builder = AlertDialog.Builder(requireContext())
-        builder.setTitle("Error")
-        builder.setMessage(message)
-        builder.setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
-        builder.show()
+    private fun showErrorSnackbar(message: String) {
+        Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG)
+            .setBackgroundTint(resources.getColor(android.R.color.holo_red_light, null))
+            .show()
     }
 
-    private fun showSuccessDialog() {
-        val builder = AlertDialog.Builder(requireContext())
-        builder.setTitle("Success")
-        builder.setMessage("Work time saved successfully!")
-        builder.setPositiveButton("OK") { dialog, which -> dialog.dismiss() }
-        builder.show()
+    private fun showSuccessSnackbar(message: String) {
+        Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT)
+            .setBackgroundTint(resources.getColor(android.R.color.holo_green_light, null))
+            .show()
     }
 
     override fun onDestroyView() {

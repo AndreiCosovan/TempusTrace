@@ -18,9 +18,21 @@
             android:text="Work Statistics"
             android:textSize="24sp"
             android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface"
+            android:layout_marginTop="8dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
+            
+        <TextView
+            android:id="@+id/text_dashboard_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="View your work time statistics and history"
+            android:textSize="14sp"
+            android:textColor="?android:attr/textColorSecondary"
+            app:layout_constraintTop_toBottomOf="@id/text_dashboard_title" />
 
         <com.google.android.material.progressindicator.CircularProgressIndicator
             android:id="@+id/loading_indicator"
@@ -30,18 +42,18 @@
             android:indeterminate="true"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/text_dashboard_title" />
+            app:layout_constraintTop_toBottomOf="@id/text_dashboard_subtitle" />
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_week_stats"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             app:cardCornerRadius="8dp"
-            app:cardElevation="4dp"
+            app:cardElevation="2dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/text_dashboard_title">
+            app:layout_constraintTop_toBottomOf="@id/text_dashboard_subtitle">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -54,7 +66,9 @@
                     android:layout_height="wrap_content"
                     android:text="This Week"
                     android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    android:layout_marginBottom="8dp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -100,15 +114,15 @@
                         tools:text="24.5" />
                 </LinearLayout>
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_month_stats"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             app:cardCornerRadius="8dp"
-            app:cardElevation="4dp"
+            app:cardElevation="2dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/card_week_stats">
@@ -124,7 +138,9 @@
                     android:layout_height="wrap_content"
                     android:text="This Month"
                     android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    android:layout_marginBottom="8dp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -170,15 +186,15 @@
                         tools:text="112.5" />
                 </LinearLayout>
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_overall_stats"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             app:cardCornerRadius="8dp"
-            app:cardElevation="4dp"
+            app:cardElevation="2dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/card_month_stats">
@@ -194,7 +210,9 @@
                     android:layout_height="wrap_content"
                     android:text="Overall Statistics"
                     android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    android:layout_marginBottom="8dp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -240,7 +258,7 @@
                         tools:text="7.8" />
                 </LinearLayout>
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:id="@+id/text_recent_days_title"
@@ -250,6 +268,7 @@
             android:text="Recent Workdays"
             android:textSize="18sp"
             android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface"
             app:layout_constraintTop_toBottomOf="@id/card_overall_stats" />
 
         <androidx.recyclerview.widget.RecyclerView
