@@ -12,6 +12,9 @@ import android.widget.NumberPicker
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.tempustrace.data.AppDatabase
 import com.example.tempustrace.data.Break
 import com.example.tempustrace.data.UserPreferencesRepository
@@ -24,6 +27,7 @@ import java.util.*
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
@@ -35,6 +39,7 @@ class TrackingFragment : Fragment() {
 
     private var _binding: FragmentTrackingBinding? = null
     private val binding get() = _binding!!
+    private var preferencesJob: Job? = null
     
     @Inject
     lateinit var db: AppDatabase
@@ -99,13 +104,18 @@ class TrackingFragment : Fragment() {
         val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         binding.editTextDate.setText(todayDate)
 
-        // Set default values from preferences
-        CoroutineScope(Dispatchers.Main).launch {
-            userPreferencesRepository.userPreferencesFlow.collect { preferences ->
-                binding.editTextWorkedFrom.setText(preferences.defaultWorkStartTime)
-                binding.editTextWorkedTo.setText(preferences.defaultWorkEndTime)
-                binding.editTextFirstBreak.setText(preferences.defaultFirstBreakDuration.toString())
-                binding.editTextSecondBreak.setText(preferences.defaultSecondBreakDuration.toString())
+        // Set default values from preferences using lifecycleScope
+        preferencesJob?.cancel()
+        preferencesJob = viewLifecycleOwner.lifecycleScope.launch {
+            // Only collect when the view is at least STARTED
+            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                userPreferencesRepository.userPreferencesFlow.collect { preferences ->
+                    // The binding should always be valid here because we're respecting the lifecycle
+                    binding.editTextWorkedFrom.setText(preferences.defaultWorkStartTime)
+                    binding.editTextWorkedTo.setText(preferences.defaultWorkEndTime)
+                    binding.editTextFirstBreak.setText(preferences.defaultFirstBreakDuration.toString())
+                    binding.editTextSecondBreak.setText(preferences.defaultSecondBreakDuration.toString())
+                }
             }
         }
     }
@@ -234,6 +244,8 @@ class TrackingFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        preferencesJob?.cancel()
+        preferencesJob = null
         super.onDestroyView()
         _binding = null
     }
