@@ -16,6 +16,10 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
+import kotlin.compareTo
+import kotlin.div
+import kotlin.text.toDouble
+import kotlin.text.toLong
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
@@ -78,54 +82,85 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun calculateStats(workDays: List<WorkDay>) {
-        val now = LocalDate.now()
-        val thisWeekWorkDays = workDays.filter {
-            ChronoUnit.DAYS.between(it.date, now) < 7
-        }
-
-        val thisMonthWorkDays = workDays.filter {
-            it.date.month == now.month && it.date.year == now.year
-        }
-
-        // Calculate average hours worked per day
-        val avgDailyHours = workDays.mapNotNull { workDay ->
-            workDay.endTime?.let { endTime ->
-                Duration.between(workDay.startTime, endTime).toMinutes().toDouble() / 60
+        viewModelScope.launch {
+            val now = LocalDate.now()
+            // Get all workdays with their breaks
+            val workDaysWithBreaks = mutableListOf<WorkDayWithBreaks>()
+            for (workDay in workDays) {
+                try {
+                    val workDayWithBreaks = database.workDayDao().getWorkDayWithBreaks(workDay.id).first()
+                    workDaysWithBreaks.add(workDayWithBreaks)
+                } catch (e: Exception) {
+                    // If breaks can't be loaded, just use the workday without breaks
+                    workDaysWithBreaks.add(WorkDayWithBreaks(workDay, emptyList()))
+                }
             }
-        }.average().takeIf { it.isFinite() } ?: 0.0
 
-        // Calculate total hours this week
-        val totalWeekHours = thisWeekWorkDays.sumOf { workDay ->
-            workDay.endTime?.let { endTime ->
-                Duration.between(workDay.startTime, endTime).toMinutes()
-            } ?: 0
-        } / 60.0
+            // Filter for weekly and monthly stats
+            val thisWeekWorkDays = workDaysWithBreaks.filter {
+                ChronoUnit.DAYS.between(it.workDay.date, now) < 7
+            }
 
-        // Calculate total hours this month
-        val totalMonthHours = thisMonthWorkDays.sumOf { workDay ->
-            workDay.endTime?.let { endTime ->
-                Duration.between(workDay.startTime, endTime).toMinutes()
-            } ?: 0
-        } / 60.0
+            val thisMonthWorkDays = workDaysWithBreaks.filter {
+                it.workDay.date.month == now.month && it.workDay.date.year == now.year
+            }
 
-        // Calculate time balance (actual worked hours - standard hours)
-        val totalActualHours = workDays.sumOf { workDay ->
-            workDay.endTime?.let { endTime ->
-                Duration.between(workDay.startTime, endTime).toMinutes().toDouble() / 60
-            } ?: 0.0
+            // Calculate total actual hours worked (excluding breaks)
+            val totalActualHours = workDaysWithBreaks.sumOf { workDayWithBreaks ->
+                val workDay = workDayWithBreaks.workDay
+                workDay.endTime?.let { endTime ->
+                    // Calculate total work duration
+                    val totalMinutes = Duration.between(workDay.startTime, endTime).toMinutes().toDouble()
+
+                    // Subtract break durations
+                    val breakMinutes = workDayWithBreaks.breaks.sumOf { it.durationMinutes?.toLong() ?: 0L }.toDouble()
+
+                    // Convert to hours
+                    (totalMinutes - breakMinutes) / 60.0
+                } ?: 0.0
+            }
+
+            // Calculate total hours this week (excluding breaks)
+            val totalWeekHours = thisWeekWorkDays.sumOf { workDayWithBreaks ->
+                val workDay = workDayWithBreaks.workDay
+                workDay.endTime?.let { endTime ->
+                    val totalMinutes = Duration.between(workDay.startTime, endTime).toMinutes().toDouble()
+                    val breakMinutes = workDayWithBreaks.breaks.sumOf { it.durationMinutes?.toLong() ?: 0L }.toDouble()
+                    (totalMinutes - breakMinutes) / 60.0
+                } ?: 0.0
+            }
+
+            // Calculate total hours this month (excluding breaks)
+            val totalMonthHours = thisMonthWorkDays.sumOf { workDayWithBreaks ->
+                val workDay = workDayWithBreaks.workDay
+                workDay.endTime?.let { endTime ->
+                    val totalMinutes = Duration.between(workDay.startTime, endTime).toMinutes().toDouble()
+                    val breakMinutes = workDayWithBreaks.breaks.sumOf { it.durationMinutes?.toLong() ?: 0L }.toDouble()
+                    (totalMinutes - breakMinutes) / 60.0
+                } ?: 0.0
+            }
+
+            // Calculate time balance (actual worked hours - standard hours)
+            val totalStandardHours = workDays.size * 8.0 // 8 hours per day is standard
+            val timeBalance = totalActualHours - totalStandardHours
+
+            // Calculate average daily hours
+            val averageDailyHours = if (workDays.isNotEmpty()) {
+                totalActualHours / workDays.size
+            } else {
+                0.0
+            }
+
+            _workStats.value = WorkStats(
+                totalTrackedDays = workDays.size,
+                averageDailyHours = averageDailyHours,
+                totalWeekHours = totalWeekHours,
+                totalMonthHours = totalMonthHours,
+                daysWorkedThisWeek = thisWeekWorkDays.size,
+                daysWorkedThisMonth = thisMonthWorkDays.size,
+                timeBalance = timeBalance
+            )
         }
-        val totalStandardHours = workDays.size * 8.0 // 8 hours per day is standard
-        val timeBalance = totalActualHours - totalStandardHours
-
-        _workStats.value = WorkStats(
-            totalTrackedDays = workDays.size,
-            averageDailyHours = avgDailyHours,
-            totalWeekHours = totalWeekHours,
-            totalMonthHours = totalMonthHours,
-            daysWorkedThisWeek = thisWeekWorkDays.size,
-            daysWorkedThisMonth = thisMonthWorkDays.size,
-            timeBalance = timeBalance
-        )
     }
 
     fun deleteWorkDay(workDayId: Long) {
