@@ -20,6 +20,7 @@ import com.example.tempustrace.data.Break
 import com.example.tempustrace.data.UserPreferencesRepository
 import com.example.tempustrace.data.WorkDay
 import com.example.tempustrace.databinding.FragmentTrackingBinding
+import com.example.tempustrace.R
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
@@ -30,6 +31,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalTime
 import kotlin.text.format
@@ -194,16 +196,23 @@ class TrackingFragment : Fragment() {
             // Parse times
             val startTime = LocalTime.parse(workedFrom)
             val endTime = LocalTime.parse(workedTo)
+            val localDate = LocalDate.parse(date)
 
-            // Create a WorkDay entity
-            val workDay = WorkDay(
-                date = LocalDate.parse(date),
-                startTime = startTime,
-                endTime = endTime
-            )
+            // Use viewLifecycleOwner.lifecycleScope to respect the fragment's lifecycle
+            viewLifecycleOwner.lifecycleScope.launch {
+                // Check if entry already exists for this date
+                if (trackingViewModel.hasWorkDayForDate(localDate)) {
+                    showErrorSnackbar("An entry for this date already exists.")
+                    return@launch
+                }
 
-            // Use a coroutine to perform database operation
-            CoroutineScope(Dispatchers.IO).launch {
+                // Create a WorkDay entity
+                val workDay = WorkDay(
+                    date = localDate,
+                    startTime = startTime,
+                    endTime = endTime
+                )
+
                 // Insert the WorkDay and get its ID
                 val workDayId = db.workDayDao().insertWorkDay(workDay)
 
@@ -211,12 +220,12 @@ class TrackingFragment : Fragment() {
                 val breaks = listOf(
                     Break(
                         workDayId = workDayId,
-                        startTime = startTime.plusMinutes(120), // Example: First break starts 2 hours after work starts
+                        startTime = startTime.plusMinutes(120),
                         durationMinutes = firstBreak
                     ),
                     Break(
                         workDayId = workDayId,
-                        startTime = startTime.plusMinutes(240), // Example: Second break starts 4 hours after work starts
+                        startTime = startTime.plusMinutes(240),
                         durationMinutes = secondBreak
                     )
                 )
@@ -224,11 +233,10 @@ class TrackingFragment : Fragment() {
                 // Insert breaks
                 breaks.forEach { db.breakDao().insertBreak(it) }
 
-                // Switch back to main thread for UI updates
-                CoroutineScope(Dispatchers.Main).launch {
+                // Update UI on main thread
+                withContext(Dispatchers.Main) {
                     // Reset data
                     setupDefaultValues()
-
                     // Show success message
                     showSuccessSnackbar("Work time saved successfully!")
                 }
@@ -239,13 +247,17 @@ class TrackingFragment : Fragment() {
     }
 
     private fun showErrorSnackbar(message: String) {
+        val navView = requireActivity().findViewById<View>(R.id.nav_view)
         Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG)
+            .setAnchorView(navView)
             .setBackgroundTint(resources.getColor(android.R.color.holo_red_light, null))
             .show()
     }
 
     private fun showSuccessSnackbar(message: String) {
+        val navView = requireActivity().findViewById<View>(R.id.nav_view)
         Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT)
+            .setAnchorView(navView)
             .setBackgroundTint(resources.getColor(android.R.color.holo_green_light, null))
             .show()
     }

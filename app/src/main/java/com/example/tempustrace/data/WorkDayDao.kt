@@ -2,6 +2,7 @@ package com.example.tempustrace.data
 
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 @Dao
 interface WorkDayDao {
@@ -27,4 +28,7 @@ interface WorkDayDao {
     @Transaction
     @Query("SELECT * FROM work_days WHERE id = :id")
     fun getWorkDayWithBreaks(id: Long): Flow<WorkDayWithBreaks>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM work_days WHERE date = :date)")
+    suspend fun hasWorkDayForDate(date: LocalDate): Boolean
 }
