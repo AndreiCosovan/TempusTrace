@@ -51,9 +51,6 @@ class MainActivity : AppCompatActivity() {
             binding.navHostFragmentActivityMain.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 topMargin = insets.top
             }
-            binding.navView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                bottomMargin = insets.bottom
-            }
             WindowInsetsCompat.CONSUMED
         }
     }
