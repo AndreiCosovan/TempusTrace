@@ -10,6 +10,7 @@ import com.example.tempustrace.data.WorkDay
 import com.example.tempustrace.data.WorkDayWithBreaks
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalDate
@@ -52,19 +53,26 @@ class DashboardViewModel @Inject constructor(
 
     private fun loadRecentWorkDays() {
         viewModelScope.launch {
-            // Get the 5 most recent work days with their breaks
-            val recentIds = database.workDayDao().getAllWorkDays().collect { workDays ->
+            try {
+                // Get all work days once with first()
+                val workDays = database.workDayDao().getAllWorkDays().first()
+
+                // Extract the 5 most recent IDs
                 val recentWorkDayIds = workDays.sortedByDescending { it.date }
                     .take(5)
                     .map { it.id }
 
+                // Collect each work day with its breaks
                 val recentEntries = mutableListOf<WorkDayWithBreaks>()
                 for (id in recentWorkDayIds) {
-                    database.workDayDao().getWorkDayWithBreaks(id).collect {
-                        recentEntries.add(it)
-                    }
+                    val workDayWithBreaks = database.workDayDao().getWorkDayWithBreaks(id).first()
+                    recentEntries.add(workDayWithBreaks)
                 }
+
+                // Update the LiveData with the results
                 _recentWorkDays.value = recentEntries
+            } catch (e: Exception) {
+                _recentWorkDays.value = emptyList()
             }
         }
     }
