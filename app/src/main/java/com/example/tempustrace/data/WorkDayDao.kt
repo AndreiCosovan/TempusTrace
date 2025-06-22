@@ -21,6 +21,9 @@ interface WorkDayDao {
     @Query("SELECT * FROM work_days ORDER BY date DESC")
     fun getAllWorkDays(): Flow<List<WorkDay>>
 
+    @Query("DELETE FROM work_days WHERE id = :workDayId")
+    suspend fun deleteWorkDayById(workDayId: Long)
+
     @Transaction
     @Query("SELECT * FROM work_days WHERE id = :id")
     fun getWorkDayWithBreaks(id: Long): Flow<WorkDayWithBreaks>

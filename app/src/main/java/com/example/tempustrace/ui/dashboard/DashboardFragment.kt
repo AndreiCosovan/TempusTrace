@@ -1,5 +1,8 @@
 package com.example.tempustrace.ui.dashboard
 
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -7,10 +10,13 @@ import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.tempustrace.databinding.FragmentDashboardBinding
 import dagger.hilt.android.AndroidEntryPoint
 import java.text.DecimalFormat
+import androidx.core.graphics.drawable.toDrawable
 
 @AndroidEntryPoint
 class DashboardFragment : Fragment() {
@@ -42,6 +48,65 @@ class DashboardFragment : Fragment() {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = recentWorkdaysAdapter
         }
+
+        // Add swipe-to-delete functionality with visual feedback
+        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            0, // No drag and drop
+            ItemTouchHelper.LEFT // Only enable left swipe
+        ) {
+            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                return false // Not handling move events
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position = viewHolder.adapterPosition
+                val workdayWithBreaks = recentWorkdaysAdapter.getItemAtPosition(position)
+                // Delete the workday through the ViewModel
+                dashboardViewModel.deleteWorkDay(workdayWithBreaks.workDay.id)
+            }
+
+            // Add visual feedback during swipe
+            override fun onChildDraw(
+                canvas: Canvas,
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                dX: Float,
+                dY: Float,
+                actionState: Int,
+                isCurrentlyActive: Boolean
+            ) {
+                val itemView = viewHolder.itemView
+                val background = Color.RED.toDrawable()
+                val deleteIcon = ContextCompat.getDrawable(requireContext(), android.R.drawable.ic_menu_delete)
+
+                // Calculate positioning
+                val iconMargin = (itemView.height - deleteIcon!!.intrinsicHeight) / 2
+                val iconTop = itemView.top + (itemView.height - deleteIcon.intrinsicHeight) / 2
+                val iconBottom = iconTop + deleteIcon.intrinsicHeight
+
+                // Set background
+                background.setBounds(
+                    itemView.right + dX.toInt(),
+                    itemView.top,
+                    itemView.right,
+                    itemView.bottom
+                )
+                background.draw(canvas)
+
+                // Set icon (appears from the right when swiping left)
+                if (dX < 0) {
+                    val iconLeft = itemView.right - iconMargin - deleteIcon.intrinsicWidth
+                    val iconRight = itemView.right - iconMargin
+                    deleteIcon.setBounds(iconLeft, iconTop, iconRight, iconBottom)
+                    deleteIcon.draw(canvas)
+                }
+
+                super.onChildDraw(canvas, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
+            }
+        })
+
+        // Attach to RecyclerView
+        itemTouchHelper.attachToRecyclerView(binding.recyclerRecentDays)
     }
 
     private fun observeViewModel() {

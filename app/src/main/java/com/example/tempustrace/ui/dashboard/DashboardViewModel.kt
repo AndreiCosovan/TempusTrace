@@ -128,6 +128,19 @@ class DashboardViewModel @Inject constructor(
         )
     }
 
+    fun deleteWorkDay(workDayId: Long) {
+        viewModelScope.launch {
+            try {
+                // Delete the workday
+                database.workDayDao().deleteWorkDayById(workDayId)
+                // Reload data to update UI
+                loadWorkData()
+            } catch (e: Exception) {
+                // Handle error if needed
+            }
+        }
+    }
+
     data class WorkStats(
         val totalTrackedDays: Int = 0,
         val averageDailyHours: Double = 0.0,

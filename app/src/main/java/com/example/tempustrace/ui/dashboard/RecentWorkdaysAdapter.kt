@@ -79,4 +79,8 @@ class RecentWorkdaysAdapter : RecyclerView.Adapter<RecentWorkdaysAdapter.ViewHol
             breaksText.text = breakInfo
         }
     }
+
+    fun getItemAtPosition(position: Int): WorkDayWithBreaks {
+        return workdays[position]
+    }
 }
