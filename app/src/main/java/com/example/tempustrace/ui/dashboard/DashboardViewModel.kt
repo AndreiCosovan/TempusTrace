@@ -100,13 +100,23 @@ class DashboardViewModel @Inject constructor(
             } ?: 0
         } / 60.0
 
+        // Calculate time balance (actual worked hours - standard hours)
+        val totalActualHours = workDays.sumOf { workDay ->
+            workDay.endTime?.let { endTime ->
+                Duration.between(workDay.startTime, endTime).toMinutes().toDouble() / 60
+            } ?: 0.0
+        }
+        val totalStandardHours = workDays.size * 8.0 // 8 hours per day is standard
+        val timeBalance = totalActualHours - totalStandardHours
+
         _workStats.value = WorkStats(
             totalTrackedDays = workDays.size,
             averageDailyHours = avgDailyHours,
             totalWeekHours = totalWeekHours,
             totalMonthHours = totalMonthHours,
             daysWorkedThisWeek = thisWeekWorkDays.size,
-            daysWorkedThisMonth = thisMonthWorkDays.size
+            daysWorkedThisMonth = thisMonthWorkDays.size,
+            timeBalance = timeBalance
         )
     }
 
@@ -116,6 +126,7 @@ class DashboardViewModel @Inject constructor(
         val totalWeekHours: Double = 0.0,
         val totalMonthHours: Double = 0.0,
         val daysWorkedThisWeek: Int = 0,
-        val daysWorkedThisMonth: Int = 0
+        val daysWorkedThisMonth: Int = 0,
+        val timeBalance: Double = 0.0
     )
 }

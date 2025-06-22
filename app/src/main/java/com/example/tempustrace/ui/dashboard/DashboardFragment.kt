@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -65,6 +66,22 @@ class DashboardFragment : Fragment() {
                 // Update overall stats
                 binding.textTotalDays.text = stats.totalTrackedDays.toString()
                 binding.textAvgHours.text = decimalFormat.format(stats.averageDailyHours)
+
+                // Format and update time balance with + sign for positive values
+                val timeBalanceText = if (stats.timeBalance >= 0)
+                    "+" + decimalFormat.format(stats.timeBalance)
+                else
+                    decimalFormat.format(stats.timeBalance)
+
+                binding.textTimeBalance.text = timeBalanceText
+
+                // Set color based on balance (green for positive, red for negative)
+                val colorRes = if (stats.timeBalance >= 0)
+                    android.R.color.holo_green_dark
+                else
+                    android.R.color.holo_red_dark
+
+                binding.textTimeBalance.setTextColor(ContextCompat.getColor(requireContext(), colorRes))
             } else {
                 binding.cardWeekStats.visibility = View.GONE
                 binding.cardMonthStats.visibility = View.GONE
