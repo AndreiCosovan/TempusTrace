@@ -11,8 +11,11 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.example.tempustrace.databinding.FragmentAccountBinding
 import com.google.android.material.snackbar.Snackbar
+import com.example.tempustrace.BuildConfig
+import com.example.tempustrace.R
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.*
+
 
 @AndroidEntryPoint
 class AccountFragment : Fragment() {
@@ -32,6 +35,8 @@ class AccountFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Set version text
+        binding.textAppVersion.text = getString(R.string.version_template, BuildConfig.VERSION_NAME)
 
         setupClickListeners()
         observeViewModel()
