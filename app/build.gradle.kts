@@ -1,8 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("com.google.devtools.ksp") version "2.1.10-1.0.31"
-    id("com.google.dagger.hilt.android") version "2.56.1"
+    alias(libs.plugins.ksp)
+    id("com.google.dagger.hilt.android") version "2.57.1"
 }
 hilt {
 enableAggregatingTask = false
