@@ -61,9 +61,7 @@ class DashboardViewModel @Inject constructor(
                 // Get all work days once with first()
                 val workDays = database.workDayDao().getAllWorkDays().first()
 
-                // Extract the 5 most recent IDs
                 val recentWorkDayIds = workDays.sortedByDescending { it.date }
-                    .take(5)
                     .map { it.id }
 
                 // Collect each work day with its breaks
