@@ -10,12 +10,12 @@ enableAggregatingTask = false
 
 android {
     namespace = "com.example.tempustrace"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.tempustrace"
         minSdk = 34
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -46,7 +46,7 @@ android {
             java.srcDir("build/generated/ksp/main/kotlin")
         }
     }
-    buildToolsVersion = "35.0.0"
+    buildToolsVersion = "36.0.0"
 }
 
 dependencies {
