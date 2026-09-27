@@ -7,7 +7,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.tempustrace.R
 import com.example.tempustrace.data.WorkDayWithBreaks
-import java.time.Duration
+import com.example.tempustrace.data.WorkTimeCalculator
 import java.time.format.DateTimeFormatter
 
 class RecentWorkdaysAdapter : RecyclerView.Adapter<RecentWorkdaysAdapter.ViewHolder>() {
@@ -46,19 +46,11 @@ class RecentWorkdaysAdapter : RecyclerView.Adapter<RecentWorkdaysAdapter.ViewHol
             // Format date
             dateText.text = dateFormatter.format(workday.date)
 
-            // Calculate and format work hours
-            workday.endTime?.let { endTime ->
-                val totalWorkMinutes = Duration.between(workday.startTime, endTime).toMinutes()
-                val totalBreakMinutes = workdayWithBreaks.breaks.sumOf { it.durationMinutes ?: 0 }
-                val netWorkMinutes = totalWorkMinutes - totalBreakMinutes
-
-                val hours = netWorkMinutes / 60
-                val minutes = netWorkMinutes % 60
-                hoursText.text = String.format("%d:%02d h", hours, minutes)
-
-                // Format time range
-                timeRangeText.text = "${timeFormatter.format(workday.startTime)} - ${timeFormatter.format(endTime)}"
-            } ?: run {
+            val netMinutes = WorkTimeCalculator.netMinutes(workday, workdayWithBreaks.breaks)
+            if (netMinutes != null && workday.endTime != null) {
+                hoursText.text = WorkTimeCalculator.formatHoursAndMinutes(netMinutes)
+                timeRangeText.text = "${timeFormatter.format(workday.startTime)} - ${timeFormatter.format(workday.endTime)}"
+            } else {
                 hoursText.text = "Ongoing"
                 timeRangeText.text = "Started at ${timeFormatter.format(workday.startTime)}"
             }

@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.NumberPicker
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import com.example.tempustrace.data.WorkTimeCalculator
 import com.example.tempustrace.databinding.FragmentAccountBinding
 import com.google.android.material.snackbar.Snackbar
 import com.example.tempustrace.BuildConfig
@@ -144,8 +145,8 @@ class AccountFragment : Fragment() {
     ) {
         val numberPicker = NumberPicker(requireContext()).apply {
             minValue = 0
-            maxValue = 120
-            value = currentValue
+            maxValue = WorkTimeCalculator.MAX_BREAK_MINUTES
+            value = currentValue.coerceIn(0, WorkTimeCalculator.MAX_BREAK_MINUTES)
         }
 
         AlertDialog.Builder(requireContext())

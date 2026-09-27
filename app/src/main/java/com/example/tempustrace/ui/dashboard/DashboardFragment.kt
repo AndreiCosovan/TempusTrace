@@ -2,7 +2,6 @@ package com.example.tempustrace.ui.dashboard
 
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -13,9 +12,11 @@ import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.tempustrace.R
+import com.example.tempustrace.data.WorkTimeCalculator
 import com.example.tempustrace.databinding.FragmentDashboardBinding
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
-import java.text.DecimalFormat
 import androidx.core.graphics.drawable.toDrawable
 
 @AndroidEntryPoint
@@ -59,10 +60,15 @@ class DashboardFragment : Fragment() {
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val position = viewHolder.adapterPosition
-                val workdayWithBreaks = recentWorkdaysAdapter.getItemAtPosition(position)
-                // Delete the workday through the ViewModel
-                dashboardViewModel.deleteWorkDay(workdayWithBreaks.workDay.id)
+                val position = viewHolder.bindingAdapterPosition
+                if (position == RecyclerView.NO_POSITION) return
+                val entry = recentWorkdaysAdapter.getItemAtPosition(position)
+                dashboardViewModel.deleteWorkDay(entry.workDay.id)
+                val navView = requireActivity().findViewById<View>(R.id.nav_view)
+                Snackbar.make(binding.root, "Workday deleted", Snackbar.LENGTH_LONG)
+                    .setAction("Undo") { dashboardViewModel.restoreWorkDay(entry) }
+                    .setAnchorView(navView)
+                    .show()
             }
 
             // Add visual feedback during swipe
@@ -110,49 +116,8 @@ class DashboardFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        // Observe work statistics
-        dashboardViewModel.workStats.observe(viewLifecycleOwner) { stats ->
-            if (stats.totalTrackedDays > 0) {
-                binding.cardWeekStats.visibility = View.VISIBLE
-                binding.cardMonthStats.visibility = View.VISIBLE
-                binding.cardOverallStats.visibility = View.VISIBLE
-                binding.textDashboard.visibility = View.GONE
-
-                val decimalFormat = DecimalFormat("#0.0")
-
-                // Update week stats
-                binding.textDaysWorkedWeek.text = stats.daysWorkedThisWeek.toString()
-                binding.textTotalHoursWeek.text = decimalFormat.format(stats.totalWeekHours)
-
-                // Update month stats
-                binding.textDaysWorkedMonth.text = stats.daysWorkedThisMonth.toString()
-                binding.textTotalHoursMonth.text = decimalFormat.format(stats.totalMonthHours)
-
-                // Update overall stats
-                binding.textTotalDays.text = stats.totalTrackedDays.toString()
-                binding.textAvgHours.text = decimalFormat.format(stats.averageDailyHours)
-
-                // Format and update time balance with + sign for positive values
-                val timeBalanceText = if (stats.timeBalance >= 0)
-                    "+" + decimalFormat.format(stats.timeBalance)
-                else
-                    decimalFormat.format(stats.timeBalance)
-
-                binding.textTimeBalance.text = timeBalanceText
-
-                // Set color based on balance (green for positive, red for negative)
-                val colorRes = if (stats.timeBalance >= 0)
-                    android.R.color.holo_green_dark
-                else
-                    android.R.color.holo_red_dark
-
-                binding.textTimeBalance.setTextColor(ContextCompat.getColor(requireContext(), colorRes))
-            } else {
-                binding.cardWeekStats.visibility = View.GONE
-                binding.cardMonthStats.visibility = View.GONE
-                binding.cardOverallStats.visibility = View.GONE
-                binding.textDashboard.visibility = View.VISIBLE
-            }
+        dashboardViewModel.workStats.observe(viewLifecycleOwner) {
+            renderStats()
         }
 
         // Observe recent workdays
@@ -167,10 +132,38 @@ class DashboardFragment : Fragment() {
             }
         }
 
-        // Observe loading state
-        dashboardViewModel.loading.observe(viewLifecycleOwner) { isLoading ->
-            binding.loadingIndicator.visibility = if (isLoading) View.VISIBLE else View.GONE
+        dashboardViewModel.loading.observe(viewLifecycleOwner) {
+            renderStats()
         }
+    }
+
+    private fun renderStats() {
+        val isLoading = dashboardViewModel.loading.value == true
+        val stats = dashboardViewModel.workStats.value
+        val hasData = stats != null && stats.totalTrackedDays > 0
+
+        binding.loadingIndicator.visibility = if (isLoading) View.VISIBLE else View.GONE
+        binding.cardWeekStats.visibility = if (hasData) View.VISIBLE else View.GONE
+        binding.cardMonthStats.visibility = if (hasData) View.VISIBLE else View.GONE
+        binding.cardOverallStats.visibility = if (hasData) View.VISIBLE else View.GONE
+        binding.textDashboard.visibility = if (!isLoading && !hasData) View.VISIBLE else View.GONE
+
+        if (stats == null || !hasData) return
+
+        binding.textDaysWorkedWeek.text = stats.daysWorkedThisWeek.toString()
+        binding.textTotalHoursWeek.text = WorkTimeCalculator.formatHoursAndMinutes(stats.totalWeekMinutes)
+        binding.textDaysWorkedMonth.text = stats.daysWorkedThisMonth.toString()
+        binding.textTotalHoursMonth.text = WorkTimeCalculator.formatHoursAndMinutes(stats.totalMonthMinutes)
+        binding.textTotalDays.text = stats.totalTrackedDays.toString()
+        binding.textAvgHours.text = WorkTimeCalculator.formatHoursAndMinutes(stats.averageDailyMinutes)
+        binding.textTimeBalance.text = WorkTimeCalculator.formatSignedHoursAndMinutes(stats.timeBalanceMinutes)
+
+        val colorRes = if (stats.timeBalanceMinutes >= 0) {
+            android.R.color.holo_green_dark
+        } else {
+            android.R.color.holo_red_dark
+        }
+        binding.textTimeBalance.setTextColor(ContextCompat.getColor(requireContext(), colorRes))
     }
 
     override fun onDestroyView() {
